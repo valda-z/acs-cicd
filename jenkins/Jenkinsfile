@@ -1,0 +1,62 @@
+
+    //Lets define a unique label for this build.
+    def label = "buildpod.${env.JOB_NAME}.${env.BUILD_NUMBER}".replace('-', '_').replace('/', '_')
+
+    //Lets create a new pod template with jnlp and maven containers, that uses that label.
+    podTemplate(label: label, containers: [
+            containerTemplate(name: 'docker', image: 'docker', ttyEnabled: true, privileged: true, command: 'cat'),     
+            containerTemplate(name: 'maven', image: 'maven', ttyEnabled: true, command: 'cat'),     
+            containerTemplate(name: 'helm', image: 'lachlanevenson/k8s-helm:v2.5.1', ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'kubectl', image: 'lachlanevenson/k8s-kubectl:v1.6.6', ttyEnabled: true, command: 'cat'),
+            containerTemplate(name: 'jnlp', image: 'jenkinsci/jnlp-slave:alpine', command: '/usr/local/bin/jenkins-slave', args: '-url http://myjenkins-jenkins:8080 ${computer.jnlpmac} ${computer.name}', ttyEnabled: false)],           
+            volumes: [
+                hostPathVolume(mountPath: "/var/run/docker.sock", hostPath: "/var/run/docker.sock")
+                ]) {
+
+        //Lets use pod template (refernce by label)
+        node(label){
+            withCredentials([[$class: 'UsernamePasswordMultiBinding', credentialsId: params.acr,
+                    usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD']]){
+
+                def built_img = ''
+    
+                stage('Checkout git repo') {
+                    git url: params.giturl, branch: params.gitbranch            
+                }
+                stage('Maven build') {
+                    //Run shell commands in the 'maven' container...            
+                    container(name: 'maven') {
+                      sh 'mvn clean package'
+                    }
+                }
+                stage('Build docker image') {
+                    dir('target'){
+                        container(name: 'docker') {
+                          sh "docker login -p "+env.PASSWORD+" -u "+env.USERNAME+" " + params.acr
+                          sh "docker build -t "+params.acr+"/"+params.imagename+":${env.BUILD_NUMBER} ."
+                          sh "docker tag "+params.acr+"/"+params.imagename+":${env.BUILD_NUMBER} "+params.acr+"/"+params.imagename+":latest"
+                          sh "docker push "+params.acr+"/"+params.imagename+":latest"
+                          sh "docker push "+params.acr+"/"+params.imagename+":${env.BUILD_NUMBER}"
+                        }
+                    }
+                }
+                stage('Deploy docker image') {
+                    container(name: 'kubectl') {
+                        sh "kubectl get nodes"
+                    }
+                    dir('target'){
+                        container(name: 'helm') {
+                            def overrides = "image.repository='"+params.acr+"/"+params.imagename+"',image.tag=${env.BUILD_NUMBER},track=stable,branchName='"+params.gitbranch+"',branchSubdomain=''"
+                            def releaseName = "myjavawebapp"
+                            def chart_dir = "myjavawebapp"
+                            
+                            sh "helm init"
+                            sh "helm version"
+                            sh "helm lint ${chart_dir}"
+                            sh "helm upgrade --install --wait ${releaseName} ${chart_dir} --set ${overrides} --namespace='default'"
+                        }
+                    }
+                }
+            }
+        }
+    }
