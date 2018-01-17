@@ -81,7 +81,7 @@ throw_if_empty --jenkins-password $JENKINSPASSWORD
 #####################################################################
 # constants
 MYUUID=$(cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1)
-APPINSIGHTSNAME="${KUBERNETESNAME}-${MYUUID}"
+APPINSIGHTSNAME="${KUBERNETESNAME}${MYUUID}"
 APPDNSNAME="${KUBERNETESNAME}-${MYUUID}"
 ACRNAME="${KUBERNETESNAME}-${MYUUID}"
 GITURL_SPA="https://github.com/valda-z/acs-cicd-spa.git"
@@ -247,7 +247,7 @@ echo ""
 
 APPPUBIPRG=$(az network public-ip list -o  tsv | grep "${NGINX_IP}" | awk '{print $12}')
 APPPUBIPNAME=$(az network public-ip list -o  tsv | grep "${NGINX_IP}" | awk '{print $8}')
-APPFQDN=$(az network public-ip update --resource-group ${APPPUBLICIPRG} --name ${APPPUBLICIPNAME} --dns-name ${APPDNSNAME} --query [dnsSettings.fqdn] -o tsv)
+APPFQDN=$(az network public-ip update --resource-group ${APPPUBIPRG} --name ${APPPUBIPNAME} --dns-name ${APPDNSNAME} --query [dnsSettings.fqdn] -o tsv)
 
 #############################################################
 # sonarqube installation / configuration
@@ -381,7 +381,7 @@ job_xml=$(cat <<EOF
         <hudson.model.StringParameterDefinition>
           <name>ingressdns</name>
           <description></description>
-          <defaultValue>{ingresstodosvc}</defaultValue>
+          <defaultValue>{ingressdns}</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>ingresstodosvc</name>
