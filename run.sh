@@ -83,7 +83,7 @@ throw_if_empty --jenkins-password $JENKINSPASSWORD
 MYUUID=$(cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1)
 APPINSIGHTSNAME="${KUBERNETESNAME}${MYUUID}"
 APPDNSNAME="${KUBERNETESNAME}-${MYUUID}"
-ACRNAME="${KUBERNETESNAME}-${MYUUID}"
+ACRNAME="${KUBERNETESNAME}${MYUUID}"
 GITURL_SPA="https://github.com/valda-z/acs-cicd-spa.git"
 GITBRANCH_SPA="master"
 JENKINSJOBNAME_SPA="01-SPA"
@@ -266,7 +266,7 @@ done
 echo ""
 
 echo "      .. generate Sonar KEY"
-retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed
+retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed  > /dev/null
 SONARXSRF=$(cat /tmp/cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
 SONARKEY=$(curl  -D - -s -k -X POST -b /tmp/cookies.txt "http://${SONAR_IP}:9000/api/user_tokens/generate" -H "X-XSRF-TOKEN: ${SONARXSRF}"  --data 'name=jekins001&login=admin' --compressed | grep '{"login":"'|jq -r .token)
 SONARURL="http://${SONARSERVICENAME}-sonarqube:9000"
