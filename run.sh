@@ -189,7 +189,7 @@ retry_until_successful helm version
 # helm install services
 #############################################################
 
-echo "  .. installing jenkins"
+echo "  .. helm - installing charts"
 
 echo "      .. helming jenkins"
 ### install jenkins to kubernetes cluster
