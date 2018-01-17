@@ -80,7 +80,7 @@ throw_if_empty --jenkins-password $JENKINSPASSWORD
 
 #####################################################################
 # constants
-MYUUID = $(cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1)
+MYUUID=$(cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1)
 APPINSIGHTSNAME="${KUBERNETESNAME}-${MYUUID}"
 APPDNSNAME="${KUBERNETESNAME}-${MYUUID}"
 ACRNAME="${KUBERNETESNAME}-${MYUUID}"
