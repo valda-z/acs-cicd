@@ -1,6 +1,10 @@
 #!/bin/bash
 
 #####################################################################
+# Example command in CloudShell
+# curl -s https://raw.githubusercontent.com/valda-z/acs-cicd/master/run.sh | bash -s -- --resource-group AKSCICD --kubernetes-name valdaaks --postgresql-name valdaakspostgres
+
+#####################################################################
 # user defined parameters
 LOCATION="westeurope"
 LOCATIONPOSTGRES="westeurope"
