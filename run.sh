@@ -1,37 +1,15 @@
 #!/bin/bash
 
-
-# helm install stable/sonarqube --set persistence.enabled=true,persistence.storageClass='',persistence.accessMode='ReadWriteOnce'
-# kubectl exec mysonar2-sonarqube-570423248-8v6jx -- curl -D - -s -k -X POST -c /tmp/cook.txt -b /tmp/cook.txt -d login=admin -d password=admin http://localhost:9000/api/authentication/login
-# kubectl exec mysonar2-sonarqube-570423248-8v6jx -- curl -D - -s -k -X POST -c /tmp/cook.txt -b /tmp/cook.txt -d login=admin -d name=vvv4 http://localhost:9000/api/user_tokens/generate
-
-# curl -D - -s -k -X POST -c /tmp/cook.txt -b /tmp/cook.txt -d login=admin -d password=admin http://104.214.112.246:9000/api/authentication/login
-# curl -D - -s -k -X POST -c /tmp/cook.txt -b /tmp/cook.txt -d login=admin -d name=vvv104 http://104.214.112.246:9000/api/
-# cat cookies.txt | grep XSRF-TOKEN | awk '{print $7;}'
-
-#  curl  -D - -s -k -X POST -c cookies.txt 'http://104.214.112.246:9000/api/authentication/login' --data 'password=admin&login=admin' --compressed
-#  curl  -D - -s -k -X POST -b cookies.txt 'http://104.214.112.246:9000/api/user_tokens/generate' -H 'X-XSRF-TOKEN: 2ehiq3gblcolg2t14svr26bkp8' --data 'name=aaa101&login=admin' --compressed
-# helm init --upgrade
-# helm install stable/nginx-ingress
-# az network public-ip list -o  tsv | grep "13.95.237.21"
-# RG ... az network public-ip list -o  tsv | grep "13.95.237.21" | awk '{print $12}'         (name je 8)
-# az network public-ip update --resource-group MC_AKS2_valdaaks2_westeurope --name kubernetes-a6bf7013afb8011e7a5750a58ac1f139 --dns-name valdaaks2 --query [dnsSettings.fqdn] -o tsv
-# cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1
-
-#  curl 'http://104.214.112.246:9000/api/user_tokens/generate' -H 'Cookie: JWT-SESSION=eyJhbGciOiJIUzI1NiJ9.eyJqdGkiOiJBV0RfRmpZV3FXWUlfd1ZzTS1vNSIsInN1YiI6ImFkbWluIiwiaWF0IjoxNTE2MTA4MTMzLCJleHAiOjE1MTYzNjczMzMsImxhc3RSZWZyZXNoVGltZSI6MTUxNjEwODEzMzkxMCwieHNyZlRva2VuIjoia2Rlb2xodXM1MnIybDRnN3J1bWhoaWc4NHAifQ.vOvz-gjidAsQYExT0eAhg8oexj3gPzurp0QlClNnB_w; XSRF-TOKEN=kdeolhus52r2l4g7rumhhig84p' -H 'Origin: http://104.214.112.246:9000' -H 'X-XSRF-TOKEN: kdeolhus52r2l4g7rumhhig84p' -H 'Accept-Language: en-US,en;q=0.9' -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.97 Safari/537.36 Vivaldi/1.94.1008.40' -H 'Content-Type: application/x-www-form-urlencoded' -H 'Accept: application/json' -H 'Referer: http://104.214.112.246:9000/account/security/' -H 'Accept-Encoding: gzip, deflate' -H 'Connection: keep-alive' --data 'name=vvv102&login=admin' --compressed
-
-
 #####################################################################
 # user defined parameters
 LOCATION="westeurope"
 LOCATIONPOSTGRES="westeurope"
 RESOURCEGROUP=""
 KUBERNETESNAME=""
-ACRNAME=""
 POSTGRESQLNAME=""
 POSTGRESQLUSER="kubeadmin"
 POSTGRESQLPASSWORD="KubE123...EbuK"
-JENKINSPASSWORD="password123"
+JENKINSPASSWORD="kube123"
 
 while [[ $# > 0 ]]
 do
@@ -52,10 +30,6 @@ do
       ;;
     --kubernetes-name)
       KUBERNETESNAME="$1"
-      shift
-      ;;
-    --acr-name)
-      ACRNAME="$1"
       shift
       ;;
     --postgresql-name)
@@ -95,7 +69,6 @@ throw_if_empty --location $LOCATION
 throw_if_empty --locationpostgres $LOCATIONPOSTGRES
 throw_if_empty --resource-group $RESOURCEGROUP
 throw_if_empty --kubernetes-name  $KUBERNETESNAME
-throw_if_empty --acr-name  $ACRNAME
 throw_if_empty --postgresql-name $POSTGRESQLNAME
 throw_if_empty --postgresql-user $POSTGRESQLUSER
 throw_if_empty --postgresql-password $POSTGRESQLPASSWORD
@@ -106,15 +79,16 @@ throw_if_empty --jenkins-password $JENKINSPASSWORD
 MYUUID = $(cat /proc/sys/kernel/random/uuid | cut -d '-' -f 1)
 APPINSIGHTSNAME="${KUBERNETESNAME}-${MYUUID}"
 APPDNSNAME="${KUBERNETESNAME}-${MYUUID}"
-GITURL_SPA=""
+ACRNAME="${KUBERNETESNAME}-${MYUUID}"
+GITURL_SPA="https://github.com/valda-z/acs-cicd-spa.git"
 GITBRANCH_SPA="master"
 JENKINSJOBNAME_SPA="01-SPA"
 HELMRELEASE_SPA="myreleasespa"
-GITURL_TODO=""
+GITURL_TODO="https://github.com/valda-z/acs-cicd-todo.git"
 GITBRANCH_TODO="master"
 JENKINSJOBNAME_TODO="02-TODO"
 HELMRELEASE_TODO="myreleasetodo"
-GITURL_LIKE=""
+GITURL_LIKE="https://github.com/valda-z/acs-cicd-like.git"
 GITBRANCH_LIKE="master"
 JENKINSJOBNAME_LIKE="03-LIKE"
 HELMRELEASE_LIKE="myreleaselike"
@@ -288,9 +262,9 @@ done
 echo ""
 
 echo "      .. generate Sonar KEY"
-retry_until_successful curl  -D - -s -k -X POST -c cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed
-SONARXSRF=$(cat cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
-SONARKEY=$(curl  -D - -s -k -X POST -b cookies.txt "http://${SONAR_IP}:9000/api/user_tokens/generate" -H "X-XSRF-TOKEN: ${SONARXSRF}"  --data 'name=jekins001&login=admin' --compressed | grep '{"login":"'|jq -r .token)
+retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed
+SONARXSRF=$(cat /tmp/cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
+SONARKEY=$(curl  -D - -s -k -X POST -b /tmp/cookies.txt "http://${SONAR_IP}:9000/api/user_tokens/generate" -H "X-XSRF-TOKEN: ${SONARXSRF}"  --data 'name=jekins001&login=admin' --compressed | grep '{"login":"'|jq -r .token)
 SONARURL="http://${SONARSERVICENAME}-sonarqube:9000"
 
 #############################################################
@@ -359,8 +333,8 @@ echo "${credentials_xml}" > tmp.xml
 run_cli_command 'create-credentials-by-xml SystemCredentialsProvider::SystemContextResolver::jenkins (global)' "tmp.xml"
 rm tmp.xml
 
-### importing jobs for todo and like
-
+### importing job for spa
+######################################
 job_xml=$(cat <<EOF
 <?xml version='1.0' encoding='UTF-8'?>
 <flow-definition plugin="workflow-job@2.13">
@@ -386,9 +360,34 @@ job_xml=$(cat <<EOF
           <defaultValue>{gitbranch}</defaultValue>
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
-          <name>imagename</name>
+          <name>releasename</name>
           <description></description>
-          <defaultValue>{imagename}</defaultValue>
+          <defaultValue>{releasename}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarurl</name>
+          <description></description>
+          <defaultValue>{sonarurl}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarkey</name>
+          <description></description>
+          <defaultValue>{sonarkey}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ingressdns</name>
+          <description></description>
+          <defaultValue>{ingresstodosvc}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ingresstodosvc</name>
+          <description></description>
+          <defaultValue>{ingresstodosvc}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ingresslikesvc</name>
+          <description></description>
+          <defaultValue>{ingresslikesvc}</defaultValue>
         </hudson.model.StringParameterDefinition>
       </parameterDefinitions>
     </hudson.model.ParametersDefinitionProperty>
@@ -423,11 +422,182 @@ EOF
 )
 
 job_xml=${job_xml//'{acr}'/${REGISTRY_SERVER}}
-job_xml=${job_xml//'{giturl}'/${GITURL}}
-job_xml=${job_xml//'{gitbranch}'/${GITBRANCH}}
-job_xml=${job_xml//'{imagename}'/${IMAGENAME}}
+job_xml=${job_xml//'{giturl}'/${GITURL_SPA}}
+job_xml=${job_xml//'{gitbranch}'/${GITBRANCH_SPA}}
+job_xml=${job_xml//'{releasename}'/${HELMRELEASE_SPA}}
+job_xml=${job_xml//'{sonarurl}'/${SONARURL}}
+job_xml=${job_xml//'{sonarkey}'/${SONARKEY}}
+job_xml=${job_xml//'{ingressdns}'/${APPFQDN}}
+job_xml=${job_xml//'{ingresslikesvc}'/${HELMRELEASE_LIKE}-acscicdlike}
+job_xml=${job_xml//'{ingresstodosvc}'/${HELMRELEASE_TODO}-acscicdtodo}
 echo "${job_xml}" > tmp.xml
-run_cli_command "create-job ${JENKINSJOBNAME}" "tmp.xml"
+run_cli_command "create-job ${JENKINSJOBNAME_SPA}" "tmp.xml"
+rm tmp.xml
+
+### importing job for todo
+######################################
+job_xml=$(cat <<EOF
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.13">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>acr</name>
+          <description></description>
+          <defaultValue>{acr}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>giturl</name>
+          <description></description>
+          <defaultValue>{giturl}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>gitbranch</name>
+          <description></description>
+          <defaultValue>{gitbranch}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>releasename</name>
+          <description></description>
+          <defaultValue>{releasename}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarurl</name>
+          <description></description>
+          <defaultValue>{sonarurl}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarkey</name>
+          <description></description>
+          <defaultValue>{sonarkey}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.40">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@3.4.0">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>{giturl}</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/{gitbranch}</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>src/main/jenkins/Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
+EOF
+)
+
+job_xml=${job_xml//'{acr}'/${REGISTRY_SERVER}}
+job_xml=${job_xml//'{giturl}'/${GITURL_TODO}}
+job_xml=${job_xml//'{gitbranch}'/${GITBRANCH_TODO}}
+job_xml=${job_xml//'{releasename}'/${HELMRELEASE_TODO}}
+job_xml=${job_xml//'{sonarurl}'/${SONARURL}}
+job_xml=${job_xml//'{sonarkey}'/${SONARKEY}}
+echo "${job_xml}" > tmp.xml
+run_cli_command "create-job ${JENKINSJOBNAME_TODO}" "tmp.xml"
+rm tmp.xml
+
+### importing job for like
+######################################
+job_xml=$(cat <<EOF
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.13">
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>acr</name>
+          <description></description>
+          <defaultValue>{acr}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>giturl</name>
+          <description></description>
+          <defaultValue>{giturl}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>gitbranch</name>
+          <description></description>
+          <defaultValue>{gitbranch}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>releasename</name>
+          <description></description>
+          <defaultValue>{releasename}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarurl</name>
+          <description></description>
+          <defaultValue>{sonarurl}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>sonarkey</name>
+          <description></description>
+          <defaultValue>{sonarkey}</defaultValue>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@2.40">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@3.4.0">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>{giturl}</url>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/{gitbranch}</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>src/main/jenkins/Jenkinsfile</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
+EOF
+)
+
+job_xml=${job_xml//'{acr}'/${REGISTRY_SERVER}}
+job_xml=${job_xml//'{giturl}'/${GITURL_LIKE}}
+job_xml=${job_xml//'{gitbranch}'/${GITBRANCH_LIKE}}
+job_xml=${job_xml//'{releasename}'/${HELMRELEASE_LIKE}}
+job_xml=${job_xml//'{sonarurl}'/${SONARURL}}
+job_xml=${job_xml//'{sonarkey}'/${SONARKEY}}
+echo "${job_xml}" > tmp.xml
+run_cli_command "create-job ${JENKINSJOBNAME_LIKE}" "tmp.xml"
 rm tmp.xml
 
 #############################################################
@@ -436,7 +606,9 @@ rm tmp.xml
 
 echo "  .. install kubernetes security assets"
 ### create secrets (which will be used by helm install later on)
-kubectl create secret generic ${HELMRELEASE}-${HELMCHART} --from-literal=application-insights-ikey="${APPINSIGHTS_KEY}" --from-literal=postgresqlserver-url="${POSTGRESQLSERVER_URL}"
+kubectl create secret generic ${HELMRELEASE_SPA}-acscicdspa --from-literal=application-insights-ikey="${APPINSIGHTS_KEY}"
+kubectl create secret generic ${HELMRELEASE_TODO}-acscicdtodo --from-literal=application-insights-ikey="${APPINSIGHTS_KEY}" --from-literal=postgresqlserver-url="${POSTGRESQLSERVER_URL}"
+kubectl create secret generic ${HELMRELEASE_LIKE}-acscicdlike --from-literal=application-insights-ikey="${APPINSIGHTS_KEY}" --from-literal=postgresqlserver-url="${POSTGRESQLSERVER_URL}"
 
 #############################################################
 # wait for jenkins public IP
@@ -452,5 +624,8 @@ while [  -z "$JENKINS_IP" ]; do
 done
 echo ""
 
+echo "##########################################################################"
 echo "### DONE!"
-echo "### now you can login to http://${JENKINS_IP}:8080 with username: ${JENKINS_USER} , password: ${JENKINSPASSWORD}"
+echo "### now you can login to JENKINS at http://${JENKINS_IP}:8080 with username: ${JENKINS_USER} , password: ${JENKINSPASSWORD}"
+echo "### now you can login to SONARQUBE at http://${SONAR_IP}:9000 with username: admin , password: admin"
+echo "### URL for your application is http://${APPFQDN} after deployment"
