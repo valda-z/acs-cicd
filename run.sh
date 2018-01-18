@@ -178,6 +178,11 @@ echo "      .. get kubectl credentials"
 az aks get-credentials --resource-group=${RESOURCEGROUP} --name=${KUBERNETESNAME} > /dev/null
 retry_until_successful kubectl get nodes
 sleep 20
+retry_until_successful kubectl get nodes
+sleep 20
+retry_until_successful kubectl get nodes
+sleep 20
+retry_until_successful kubectl get nodes
 retry_until_successful kubectl patch storageclass default -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}' > /dev/null
 
 echo "      .. helm init"
@@ -265,11 +270,15 @@ while [  -z "$SONAR_IP" ]; do
 done
 echo ""
 
-echo "      .. generate Sonar KEY"
-retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed  > /dev/null
-SONARXSRF=$(cat /tmp/cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
-SONARKEY=$(curl  -D - -s -k -X POST -b /tmp/cookies.txt "http://${SONAR_IP}:9000/api/user_tokens/generate" -H "X-XSRF-TOKEN: ${SONARXSRF}"  --data 'name=jekins001&login=admin' --compressed | grep '{"login":"'|jq -r .token)
-SONARURL="http://${SONARSERVICENAME}-sonarqube:9000"
+SONARKEY=""
+while [  -z "$SONAR_IP" ]; do
+    echo "      .. generate Sonar KEY"
+    retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed  > /dev/null
+    SONARXSRF=$(cat /tmp/cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
+    SONARKEY=$(curl  -D - -s -k -X POST -b /tmp/cookies.txt "http://${SONAR_IP}:9000/api/user_tokens/generate" -H "X-XSRF-TOKEN: ${SONARXSRF}"  --data 'name=jekins001&login=admin' --compressed | grep '{"login":"'|jq -r .token)
+    SONARURL="http://${SONARSERVICENAME}-sonarqube:9000"
+    echo "      .. Sonar URL: ${SONARURL} , Sonar KEY: ${SONARKEY}"
+done
 
 #############################################################
 # jenkins installation / configuration
@@ -310,9 +319,22 @@ done
 echo -n "${JENKINS_KEY}"
 echo ""
 
+kubectl exec ${KUBE_JENKINS} -- cat /var/jenkins_config/config.xml > /tmp/config.xml
+sed -i.bak s/kubernetes.default/kubernetese.default.svc/g /tmp/config.xml
+kubectl cp /tmp/config.xml ${KUBE_JENKINS}:/var/jenkins_config/config.xml
+
+kubectl exec ${KUBE_JENKINS} -- cat /var/jenkins_home/config.xml > /tmp/config.xml
+sed -i.bak s/kubernetes.default/kubernetese.default.svc/g /tmp/config.xml
+kubectl cp /tmp/config.xml ${KUBE_JENKINS}:/var/jenkins_home/config.xml
+
 ### install jenkins plugins
 run_cli_command "install-plugin pipeline-utility-steps -deploy"
-run_cli_command "install-plugin http_request -restart"
+run_cli_command "install-plugin http_request -deploy"
+UPDATE_LIST=$(run_cli_command "list-plugins" | grep -e ')$' | awk '{ print $1 }' );
+if [ ! -z "${UPDATE_LIST}" ]; then
+    run_cli_command "install-plugin ${UPDATE_LIST}"
+fi
+run_cli_command "safe-restart"
 sleep 30
 
 ### create secrets for ACR
