@@ -271,7 +271,7 @@ done
 echo ""
 
 SONARKEY=""
-while [  -z "$SONAR_IP" ]; do
+while [  -z "$SONARKEY" ]; do
     echo "      .. generate Sonar KEY"
     retry_until_successful curl  -D - -s -k -X POST -c /tmp/cookies.txt "http://${SONAR_IP}:9000/api/authentication/login" --data 'password=admin&login=admin' --compressed  > /dev/null
     SONARXSRF=$(cat /tmp/cookies.txt | grep XSRF-TOKEN | awk '{print $7;}')
