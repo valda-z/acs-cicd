@@ -321,10 +321,12 @@ echo ""
 
 retry_until_successful kubectl exec ${KUBE_JENKINS} -- cat /var/jenkins_config/config.xml > /tmp/config.xml
 sed -i.bak s/kubernetes.default/kubernetes.default.svc/g /tmp/config.xml
+retry_until_successful kubectl exec ${KUBE_JENKINS} -- rm /var/jenkins_config/config.xml
 retry_until_successful kubectl cp /tmp/config.xml ${KUBE_JENKINS}:/var/jenkins_config/config.xml
 
 retry_until_successful kubectl exec ${KUBE_JENKINS} -- cat /var/jenkins_home/config.xml > /tmp/config.xml
 sed -i.bak s/kubernetes.default/kubernetes.default.svc/g /tmp/config.xml
+retry_until_successful kubectl exec ${KUBE_JENKINS} -- rm /var/jenkins_home/config.xml
 retry_until_successful kubectl cp /tmp/config.xml ${KUBE_JENKINS}:/var/jenkins_home/config.xml
 
 ### install jenkins plugins
