@@ -255,6 +255,13 @@ APPPUBIPNAME=$(az network public-ip list -o  tsv | grep "${NGINX_IP}" | awk '{pr
 APPFQDN=$(az network public-ip update --resource-group ${APPPUBIPRG} --name ${APPPUBIPNAME} --dns-name ${APPDNSNAME} --query [dnsSettings.fqdn] -o tsv)
 
 #############################################################
+# kubernetes ACR credentials
+#############################################################
+
+echo "  .. installing ACR credentials to kubernetes"
+retry_until_successful kubectl create secret docker-registry ${REGISTRY_SERVER} --docker-server=${REGISTRY_SERVER}--docker-username=${REGISTRY_USER_NAME} --docker-password="${REGISTRY_PASSWORD}" --docker-email=test@test.it  > /dev/null
+
+#############################################################
 # sonarqube installation / configuration
 #############################################################
 
