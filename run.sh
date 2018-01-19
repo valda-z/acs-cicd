@@ -198,15 +198,15 @@ echo "  .. helm - installing charts"
 
 echo "      .. helming jenkins"
 ### install jenkins to kubernetes cluster
-helm install --name ${JENKINSSERVICENAME} stable/jenkins --set "Master.AdminPassword=${JENKINSPASSWORD}" >/dev/null
+retry_until_successful helm install --name ${JENKINSSERVICENAME} stable/jenkins --set "Master.AdminPassword=${JENKINSPASSWORD}" >/dev/null
 
 echo "      .. helming sonarqube"
 ### install sonarqube to kubernetes cluster
-helm install --name ${SONARSERVICENAME} stable/sonarqube >/dev/null
+retry_until_successful helm install --name ${SONARSERVICENAME} stable/sonarqube >/dev/null
 
 echo "      .. helming nginx-ingress"
 ### install nginx ingress to kubernetes cluster
-helm install --name default-ingress stable/nginx-ingress >/dev/null
+retry_until_successful helm install --name default-ingress stable/nginx-ingress >/dev/null
 
 #############################################################
 # create Databases
