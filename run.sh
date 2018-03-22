@@ -218,7 +218,7 @@ APPINSIGHTS_KEY=$(az resource create -g ${RESOURCEGROUP} -n ${APPINSIGHTSNAME} -
 
 ### create postgresql as a service
 echo "  .. create postgresql PaaS database"
-az postgres server create -l ${LOCATIONPOSTGRES} -g ${RESOURCEGROUP} -n ${POSTGRESQLNAME} -u ${POSTGRESQLUSER} -p "${POSTGRESQLPASSWORD}" --performance-tier Basic --compute-units 50 --ssl-enforcement Enabled --storage-size 51200 > /dev/null
+az postgres server create -l ${LOCATIONPOSTGRES} -g ${RESOURCEGROUP} -n ${POSTGRESQLNAME} -u ${POSTGRESQLUSER} -p "${POSTGRESQLPASSWORD}" --sku-name B_Gen4_1 --ssl-enforcement Enabled --storage-size 51200 > /dev/null
 az postgres server firewall-rule create -g ${RESOURCEGROUP} -s ${POSTGRESQLNAME} -n allowall --start-ip-address 0.0.0.0 --end-ip-address 255.255.255.255 > /dev/null
 read postgresqlfqdn <<< $(az postgres server show -g ${RESOURCEGROUP} -n ${POSTGRESQLNAME} --query [fullyQualifiedDomainName] -o tsv)
 POSTGRESQLSERVER_URL=${POSTGRESQLSERVER_URL//'{postgresqlfqdn}'/${postgresqlfqdn}}
