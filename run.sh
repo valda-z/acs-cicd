@@ -189,6 +189,10 @@ echo "      .. helm init"
 ### initialize helm
 retry_until_successful helm init > /dev/null
 retry_until_successful helm version
+### patch tiller-deploy for version 2.9
+echo "          .. patching tiller-deploy"
+retry_until_successful kubectl -n kube-system patch deployment tiller-deploy -p '{"spec": {"template": {"spec": {"automountServiceAccountToken": true}}}}'
+retry_until_successful helm version
 
 #############################################################
 # helm install services
